@@ -76,6 +76,8 @@ class PairingApiClient(
                 .header("User-Agent", "AdvenoTv/1.0")
                 .build()
 
+            Log.i(TAG, "--> GET $url | Header: X-Pairing-Token=$pairingToken")
+
             client.newCall(request).execute().use { response ->
                 val bodyString = response.body?.string() ?: ""
                 if (response.code != 200) {
@@ -118,7 +120,7 @@ class PairingApiClient(
                 put("app_version", appVersion)
             }.toString()
 
-            Log.i(TAG, "--> POST $url (Register Screen) | payload: $jsonBody")
+            Log.i(TAG, "--> POST $url (Register Screen) | Header: X-Pairing-Token=$pairingToken | payload: $jsonBody")
 
             val requestBuilder = Request.Builder()
                 .url(url)
@@ -160,7 +162,7 @@ class PairingApiClient(
     ): Result<RenewCredentialResponse> = withContext(Dispatchers.IO) {
         try {
             val url = "${ApiConfig.BASE_URL}/api/v1/pairing/sessions/$sessionId/credential"
-            Log.i(TAG, "--> POST $url (Renew Credential)")
+            Log.i(TAG, "--> POST $url (Renew Credential) | Header: X-Pairing-Token=$pairingToken")
 
             val request = Request.Builder()
                 .url(url)
