@@ -1,0 +1,46 @@
+*.iml
+.gradle
+/.idea/
+/.kotlin/
+/local.properties
+/.idea/caches
+/.idea/libraries
+/.idea/modules.xml
+/.idea/workspace.xml
+/.idea/navEditor.xml
+/.idea/assetWizardSettings.xml
+.DS_Store
+/build
+/captures
+.externalNativeBuild
+.cxx
+local.properties
+
+# Local agent material, progress documents, and screenshots are not source code.
+/.agents/
+/docs/
+/scripts/
+/AGENTS.md
+/*.png
+/*.pdf
+/*.docx
+
+# Credentials and local signing material must never enter version control.
+.env
+.env.*
+!/.env.example
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+key.properties
+secrets.properties
+google-services.json
+
+# Packaged build outputs
+*.apk
+*.aab
+*.log
+hs_err_pid*
+replay_pid*
