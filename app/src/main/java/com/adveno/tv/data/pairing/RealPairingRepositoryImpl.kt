@@ -86,8 +86,12 @@ class RealPairingRepositoryImpl(
                 if (statusResult.isFailure) continue
 
                 when (statusResult.getOrThrow().status) {
-                    "PENDING" -> Unit
+                    "PENDING" -> {
+                        // Keep QR code visible and continue polling
+                    }
                     "CONNECTING" -> {
+                        // Connection started -> show connecting animation screen and CONTINUE polling
+                        Log.i(TAG, "Connection started (status=CONNECTING). Showing connecting animation screen and continuing poll.")
                         if (_pairingState.value !is PairingState.Connecting) {
                             _pairingState.value = PairingState.Connecting(
                                 sessionId = sessionId,
@@ -95,44 +99,40 @@ class RealPairingRepositoryImpl(
                                 pairingType = type
                             )
                         }
-                        if (pendingCredential == null) {
-                            val finalResult = requestFinalCredential(sessionId, pairingToken, type)
-                            if (finalResult.isSuccess) {
-                                pendingCredential = finalResult.getOrThrow()
-                            } else {
-                                _pairingState.value = PairingState.Failed(
-                                    finalResult.exceptionOrNull()?.message
-                                        ?: "Unable to issue device credential"
-                                )
-                                break
-                            }
-                        }
+                        // Continue polling; do NOT request credential or screen here.
                     }
                     "PAIRED" -> {
-                        val credential = pendingCredential
-                        if (credential == null) {
-                            _pairingState.value = PairingState.Failed(
-                                "Pairing was confirmed before the device credential was issued"
-                            )
+                        // Status is PAIRED -> Stop polling and create screen or request credential
+                        Log.i(TAG, "Status is PAIRED! Requesting screen creation / credential renewal now.")
+                        val finalResult = requestFinalCredential(sessionId, pairingToken, type)
+                        if (finalResult.isFailure) {
+                            val errorMsg = finalResult.exceptionOrNull()?.message
+                                ?: "Unable to issue device credential"
+                            Log.e(TAG, "Failed to get credential on PAIRED: $errorMsg")
+                            _pairingState.value = PairingState.Failed(errorMsg)
                             break
                         }
+
+                        val credential = finalResult.getOrThrow()
+                        Log.i(TAG, "Successfully obtained credential for screen_id=${credential.screenId}. Persisting credentials and transitioning to main screen.")
                         runCatching {
                             deviceRepository.setPaired(
                                 isPaired = true,
                                 screenName = credential.screenName ?: credential.screenId,
-                                companyName = null,
+                                companyName = "Adveno Network",
                                 authToken = credential.credential,
                                 remoteScreenId = credential.screenId
                             )
                         }.onSuccess {
                             _pairingState.value = PairingState.PairedSuccess(
-                                companyId = "",
-                                companyName = "",
+                                companyId = "comp_adveno",
+                                companyName = "Adveno Network",
                                 screenName = credential.screenName ?: credential.screenId,
                                 screenId = credential.screenId
                             )
                             pendingCredential = null
                         }.onFailure { error ->
+                            Log.e(TAG, "Unable to securely store device credential: ${error.localizedMessage}")
                             _pairingState.value = PairingState.Failed(
                                 "Unable to securely store device credential: ${error.localizedMessage}"
                             )
@@ -140,12 +140,12 @@ class RealPairingRepositoryImpl(
                         break
                     }
                     "EXPIRED" -> {
+                        Log.w(TAG, "Pairing session expired.")
                         _pairingState.value = PairingState.Expired(localScreenId)
                         break
                     }
                     else -> {
-                        _pairingState.value = PairingState.Failed("Unknown pairing status")
-                        break
+                        Log.w(TAG, "Unknown pairing status: ${statusResult.getOrThrow().status}")
                     }
                 }
             }
