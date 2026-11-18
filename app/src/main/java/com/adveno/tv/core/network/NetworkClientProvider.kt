@@ -20,7 +20,6 @@ object NetworkClientProvider {
         val chuckerInterceptor = ChuckerInterceptor.Builder(context)
             .collector(chuckerCollector)
             .maxContentLength(250_000L)
-            .redactHeaders("Authorization", "X-Pairing-Token")
             .alwaysReadResponseBody(true)
             .createShortcut(true)
             .build()
